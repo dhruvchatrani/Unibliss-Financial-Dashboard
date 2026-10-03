@@ -44,13 +44,13 @@ class FinancialEvent(Base):
     amazon_order_id = Column(String, index=True, nullable=False)
     posted_date = Column(Date, nullable=False)
     sku = Column(String, index=True)
-    type = Column(String)  # 'Order','Refund','Reimbursement','Transfer','ShippingService','Other'
+    event_type = Column(String)  # 'Order','Refund','Reimbursement','Transfer','ShippingService','Other'
     description = Column(String, nullable=True)
     quantity = Column(Integer, default=1)
     product_sales = Column(Float, default=0.0)
     fba_fees = Column(Float, default=0.0)
     selling_fees = Column(Float, default=0.0)
-    refunds = Column(Float, default=0.0)
+    other_fees = Column(Float, default=0.0)
     total_amount = Column(Float, default=0.0)
     promotional_rebates = Column(Float, default=0.0)
     is_deferred = Column(Boolean, default=False)

@@ -14,8 +14,7 @@
       <a href="/sku-insights" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">SKU Insights</a>
       <a href="/advertising" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Advertising</a>
       <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
-      <a href="/promotions" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Promotions</a>
-                  <a href="/docs" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Documentation</a>
+                  <a href="/help" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Help / SOP</a>
       <a href="/audit" class="text-blue-600 font-semibold px-3 py-1 rounded-lg bg-blue-50 transition">Upload</a>
       <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
     </nav>
@@ -27,6 +26,12 @@
     <h2 class="text-3xl font-extrabold text-gray-900 leading-tight">Monthly Data Upload</h2>
     <p class="text-gray-500 mt-2">Upload your Amazon reports to sync historical data and generate health audits. Each slot accepts specific file types.</p>
   </header>
+
+  {% if error %}
+  <div class="bg-red-50 border-l-4 border-red-500 text-red-800 rounded-xl p-4 mb-8 text-sm font-medium shadow-sm">
+    {{ error | safe }}
+  </div>
+  {% endif %}
 
   <form action="/upload-manual" method="POST" enctype="multipart/form-data" class="space-y-6">
     <!-- Month Selection Card -->

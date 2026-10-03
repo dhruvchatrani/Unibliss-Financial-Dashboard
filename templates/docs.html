@@ -2,47 +2,471 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOP - Unibliss Enterprises</title>
+  <title>Help / SOP - KABA Brands</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .prose h1 { font-size: 2.25rem; font-weight: 800; color: #1e3a8a; margin-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
-    .prose h2 { font-size: 1.5rem; font-weight: 700; color: #1e40af; margin-top: 2rem; margin-bottom: 1rem; }
-    .prose h3 { font-size: 1.25rem; font-weight: 700; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; background: #f3f4f6; padding: 0.5rem 1rem; border-radius: 8px; border-left: 4px solid #3b82f6; }
-    .prose p { margin-bottom: 1rem; line-height: 1.6; color: #374151; }
-    .prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
-    .prose li { margin-bottom: 0.5rem; }
-    .prose strong { color: #111827; }
-    .prose a { color: #2563eb; text-decoration: underline; font-weight: 500; }
-    .prose hr { border: 0; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+    .faq-toggle:checked + label + .faq-answer { display: block; }
+    .faq-toggle:checked + label .faq-arrow { transform: rotate(180deg); }
+    .faq-answer { display: none; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
 <header class="bg-white shadow-sm sticky top-0 z-50">
-  <div class="container mx-auto px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
-    <div class="flex items-center gap-4 flex-wrap">
-      <h1 class="text-xl font-bold text-blue-900">Unibliss Enterprises</h1>
-      <nav class="flex flex-wrap gap-2 text-sm">
-        <a href="/" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Dashboard</a>
-        <a href="/sku-insights" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">SKU Insights</a>
-        <a href="/advertising" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Advertising</a>
-        <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
-        <a href="/promotions" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Promotions</a>
-        <a href="/docs" class="text-blue-600 font-semibold px-3 py-1 rounded-lg bg-blue-50 transition">Documentation</a>
-        <a href="/audit" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Upload</a>
-        <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
-      </nav>
-    </div>
+  <div class="container mx-auto px-6 py-3 flex items-center gap-4 flex-wrap">
+    <h1 class="text-xl font-bold text-blue-900">KABA Brands</h1>
+    <nav class="flex flex-wrap gap-2 text-sm">
+      <a href="/" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Dashboard</a>
+      <a href="/sku-insights" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">SKU Insights</a>
+      <a href="/advertising" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Advertising</a>
+      <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
+      <a href="/help" class="text-blue-600 font-semibold px-3 py-1 rounded-lg bg-blue-50 transition">Help / SOP</a>
+      <a href="/audit" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Upload</a>
+      <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
+    </nav>
   </div>
 </header>
 
-<main class="container mx-auto px-6 py-10 max-w-4xl">
-  <!-- View Mode -->
-  <div id="viewMode" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 mb-8 animate-in fade-in duration-500">
-    <div class="prose max-w-none">
-      {{ content_html | safe }}
+<main class="container mx-auto px-6 py-10 max-w-4xl space-y-10">
+
+  <!-- Hero -->
+  <section class="bg-gradient-to-br from-blue-800 to-indigo-900 rounded-2xl p-8 md:p-12 text-white">
+    <h1 class="text-3xl md:text-4xl font-extrabold mb-3">KABA Brands Financial Dashboard</h1>
+    <p class="text-blue-200 text-lg max-w-2xl">Your Amazon business, decoded. This dashboard turns raw Amazon settlement data into clear financial intelligence — so you know exactly where your money is going, what's profitable, and where to cut costs.</p>
+  </section>
+
+  <!-- What This Dashboard Does -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">What This Dashboard Does</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>Every month, Amazon sends you a settlement — a lump sum bank transfer that covers multiple orders, fees, refunds, and adjustments. But Amazon doesn't give you a simple breakdown of <em>"here's what you actually earned per product."</em></p>
+      <p>This dashboard does exactly that. You upload Amazon's CSV reports, and it automatically:</p>
+      <ul class="list-disc list-inside space-y-2 ml-4">
+        <li><strong>Categorises every transaction</strong> — orders, refunds, FBA fees, selling fees, advertising costs, reimbursements, and transfers</li>
+        <li><strong>Calculates your true profit</strong> — not just revenue, but revenue minus every cost Amazon charges you</li>
+        <li><strong>Breaks it down per SKU</strong> — so you know which products are actually making money and which are bleeding cash</li>
+        <li><strong>Verifies Amazon's payout</strong> — catches discrepancies between what Amazon says they paid you and what they actually owe</li>
+      </ul>
+      <p class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg text-blue-800 font-medium">In short: this dashboard answers the question every Amazon seller asks — <em>"After everything Amazon takes, how much money am I actually making?"</em></p>
     </div>
-  </div>
+  </section>
+
+  <!-- How to Upload Data -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">How to Upload Your Data</h2>
+    <div class="space-y-6 text-sm text-gray-700 leading-relaxed">
+
+      <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+        <p class="font-bold text-amber-800">Before You Start</p>
+        <p class="text-amber-700">You need to download reports from Amazon Seller Central. Go to <strong>Reports &rarr; Payments &rarr; Statement View</strong> for settlement data, and <strong>Reports &rarr; Business Reports</strong> for session/conversion data.</p>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-gray-800 text-base mb-2">Step 1: Go to Upload</h3>
+        <p>Navigate to the <a href="/audit" class="text-blue-600 underline font-medium">Upload</a> page. Select the month these reports belong to (this is used for the Business Report and Ads Report imports).</p>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-gray-800 text-base mb-2">Step 2: Upload the Settlement Report (Required)</h3>
+        <p>This is the most important file. It contains every financial transaction Amazon processed for your account.</p>
+        <div class="bg-gray-50 rounded-lg p-4 mt-2 space-y-2">
+          <p><strong>Where to find it:</strong> Seller Central &rarr; Payments &rarr; Statement View &rarr; Download &rarr; Choose "Detailed" format</p>
+          <p><strong>File name:</strong> Usually contains "Monthly Report" or "Transaction_All Transactions.csv"</p>
+          <p><strong>What it contains:</strong> Every order, refund, fee, reimbursement, and transfer — with dates, amounts, and SKU details</p>
+          <p class="text-green-700 font-medium">Multi-month support: You can upload a CSV that covers multiple months. The system auto-detects the date range from the data — no need to upload one month at a time.</p>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-gray-800 text-base mb-2">Step 3: Upload Optional Reports</h3>
+        <div class="space-y-3 mt-2">
+          <div class="flex gap-3 items-start">
+            <span class="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">Optional</span>
+            <div>
+              <p class="font-semibold">Deferred Transactions</p>
+              <p class="text-gray-500">Orders Amazon is holding back because the return window hasn't closed yet. This helps the Reconciliation page figure out if Amazon's payout is correct. Without this file, reconciliation may show false discrepancies.</p>
+            </div>
+          </div>
+          <div class="flex gap-3 items-start">
+            <span class="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">Optional</span>
+            <div>
+              <p class="font-semibold">Business Report</p>
+              <p class="text-gray-500">Shows sessions (traffic), page views, and unit session percentage (conversion rate) per SKU. Found under Reports &rarr; Business Reports &rarr; Detail Page Sales and Traffic by Child Item. This powers the "Account CVR" and per-SKU session data on the dashboard.</p>
+            </div>
+          </div>
+          <div class="flex gap-3 items-start">
+            <span class="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">Optional</span>
+            <div>
+              <p class="font-semibold">Advertising Report</p>
+              <p class="text-gray-500">Sponsored Products search term report. Shows which keywords are driving sales, how much you're spending per click, and your advertising cost of sales (ACOS). Found under Advertising &rarr; Sponsored Products &rarr; Reports.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-gray-800 text-base mb-2">Step 4: Click "Upload & Sync to Dashboard"</h3>
+        <p>Everything gets processed in one go. You'll be redirected to the Dashboard with all your data updated.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard Page -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Dashboard — Your Business at a Glance</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>The Dashboard is your home screen. It shows the big picture of your Amazon business for any date range.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-6 mb-2">Key Metrics (Top Row)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Total Sales</p>
+          <p class="text-gray-500 text-xs">Gross product sales from orders (excluding refunds and deferred). This is the top-line revenue Amazon reported for your products.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Net Income</p>
+          <p class="text-gray-500 text-xs">What you actually earned after ALL costs — FBA fees, selling fees, refunds, advertising, COGS, operating expenses, and promotions. This is the real bottom line.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">COGS (Cost of Goods Sold)</p>
+          <p class="text-gray-500 text-xs">What your inventory costs you — manufacturing, sourcing, or purchase price per unit &times; units sold. Set this up in the Admin page.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Ads Cost</p>
+          <p class="text-gray-500 text-xs">Total Sponsored Products spend. Pulled from "Cost of Advertising" entries in your settlement report.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Refunds</p>
+          <p class="text-gray-500 text-xs">Total amount refunded to customers. High refunds eat into margins — keep an eye on this.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Units Sold</p>
+          <p class="text-gray-500 text-xs">Total units ordered (not including refunds). Helps calculate per-unit profitability.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">True Profit / Sale</p>
+          <p class="text-gray-500 text-xs">Net Income &divide; Units Sold. How much you actually earn per unit after every cost. If this is negative, you're losing money on every sale.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Account CVR (Conversion Rate)</p>
+          <p class="text-gray-500 text-xs">Percentage of visitors who actually buy. Calculated from Business Report data. Industry benchmark: 10-15% for most categories.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Promos & Deals</p>
+          <p class="text-gray-500 text-xs">Total promotional rebates (coupons, deals, Lightning Deals) automatically deducted from settlement data. This is included in Net Income calculations.</p>
+        </div>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-base mt-6 mb-2">Derived Metrics (Second Row)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Gross Margin %</p>
+          <p class="text-gray-500 text-xs">(Sales + Reimbursements &minus; Refunds &minus; COGS &minus; All Fees &minus; Promotions) &divide; Sales. Shows how much of your revenue stays with you after direct costs. Below 15% is a red flag.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Net Margin %</p>
+          <p class="text-gray-500 text-xs">Net Income &divide; Sales. Your true profit margin after EVERYTHING — including ads and operating expenses. This is what matters.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">TACOS (Total Advertising Cost of Sales)</p>
+          <p class="text-gray-500 text-xs">Total Ad Spend &divide; Total Sales. Measures how much of your total revenue goes to advertising. Below 10% is healthy; above 15% means ads are eating your profits.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">ACOS (Advertising Cost of Sales)</p>
+          <p class="text-gray-500 text-xs">Ad Spend &divide; Ad-Attributed Sales. How efficient your ads are at generating sales. Below 20% is great; above 35% needs optimisation.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Return Rate %</p>
+          <p class="text-gray-500 text-xs">Total Returns &divide; Units Sold. High return rates kill profitability. Target: below 3%. If above 5%, investigate product quality or listing accuracy.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">ROI (Return on Investment)</p>
+          <p class="text-gray-500 text-xs">Net Income &divide; Total COGS. How much return you get on every rupee invested in inventory. Above 20% is healthy.</p>
+        </div>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-base mt-6 mb-2">Period Comparisons</h3>
+      <p>The comparison table shows how your current period stacks up against the previous month (MoM) and the same period last year (YoY). Use this to spot trends — are your margins improving? Is your ad spend creeping up? Are seasonal patterns visible?</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-6 mb-2">Charts</h3>
+      <p><strong>Daily Sales Trend</strong> — shows your daily revenue over time. Spikes indicate high-selling days; dips may signal stock issues or listing problems.</p>
+      <p><strong>Disbursements</strong> — shows Amazon's bank transfers to you. These should roughly match your expected payout (see Reconciliation page).</p>
+    </div>
+  </section>
+
+  <!-- SKU Insights -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">SKU Insights — Product-Level Profitability</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>While the Dashboard shows account-wide numbers, SKU Insights breaks it down <strong>per product</strong>. This is where you find out which SKUs are actually profitable and which are dead weight.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">How SKU Profitability Works</h3>
+      <p>Each product (SKU) has its own revenue and costs. Amazon tracks orders, refunds, FBA fees, and selling fees at the SKU level. The system calculates:</p>
+      <div class="bg-gray-50 rounded-lg p-4 space-y-2 font-mono text-xs">
+        <p><strong>SKU Net Profit</strong> = SKU Sales &minus; SKU FBA Fees &minus; SKU Selling Fees &minus; SKU Refunds &minus; SKU Other Fees &minus; SKU COGS</p>
+        <p><strong>SKU Margin %</strong> = SKU Net Profit &divide; SKU Sales &times; 100</p>
+        <p><strong>SKU ROI %</strong> = SKU Net Profit &divide; SKU Total COGS &times; 100</p>
+        <p><strong>SKU Profit / Sale</strong> = SKU Net Profit &divide; Units Ordered</p>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">OpEx Allocation</h3>
+      <p>Operating expenses (rent, software, salaries, etc.) are allocated to each SKU proportionally based on revenue contribution. If a SKU generates 40% of your revenue, it bears 40% of your overhead. This gives you the "True Net Profit" — what each product earns after its fair share of business costs.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Trend Columns (WoW / MoM / YoY)</h3>
+      <p>Each SKU shows week-over-week, month-over-month, and year-over-year sales changes. Use these to spot:</p>
+      <ul class="list-disc list-inside space-y-1 ml-4">
+        <li><strong>Declining products</strong> — WoW and MoM both negative = investigate (stock issues? listing suppressed? competitor undercutting?)</li>
+        <li><strong>Seasonal products</strong> — YoY spike = seasonal demand, plan inventory accordingly</li>
+        <li><strong>Rising stars</strong> — consistent positive trends = consider increasing ad spend</li>
+      </ul>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Cashflow Health</h3>
+      <p>A SKU is marked "Low" if its Blended Profit per Unit is less than its COGS. This means the revenue from that product doesn't even cover the cost of making/buying it — you're literally paying to sell it. Consider raising the price, cutting ad spend on it, or discontinuing it.</p>
+    </div>
+  </section>
+
+  <!-- Advertising -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Advertising — Ad Performance</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>The Advertising page shows how your Sponsored Products campaigns are performing, pulled from Amazon's search term report.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Key Ad Metrics</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Impressions</p>
+          <p class="text-gray-500 text-xs">How many times your ad was shown. High impressions with low clicks = weak creative or wrong targeting.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Clicks</p>
+          <p class="text-gray-500 text-xs">How many times someone clicked your ad. Clicks &divide; Impressions = CTR (Click-Through Rate).</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Spend</p>
+          <p class="text-gray-500 text-xs">Total amount spent on ads. This is your advertising cost for the period.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">Ad Sales</p>
+          <p class="text-gray-500 text-xs">Revenue generated directly from ad clicks. Spend &divide; Ad Sales = ACOS.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">CTR (Click-Through Rate)</p>
+          <p class="text-gray-500 text-xs">Clicks &divide; Impressions. Shows how compelling your ad is. Below 0.3% needs better images/title.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="font-bold">CVR (Conversion Rate)</p>
+          <p class="text-gray-500 text-xs">Orders &divide; Clicks. How many clicks turn into sales. Below 8% means your listing needs work (images, bullets, reviews).</p>
+        </div>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Search Terms</h3>
+      <p>The search terms table shows exactly what customers typed into Amazon before clicking your ad. This is gold for keyword optimisation — double down on high-converting terms, negate irrelevant ones.</p>
+    </div>
+  </section>
+
+  <!-- Reconciliation -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Reconciliation — Did Amazon Pay You Correctly?</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>Amazon's settlement system is complex. They deduct fees, hold reserves, delay some payments, and sometimes make errors. The Reconciliation page verifies that the money hitting your bank account matches what you're entitled to.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">How It Calculates "What Amazon Should Have Paid You"</h3>
+      <div class="bg-gray-50 rounded-lg p-4 space-y-2 font-mono text-xs">
+        <p><strong>Net Order Proceeds</strong> = Total Order Amount (all orders including deferred)</p>
+        <p><strong>&minus; Refunds</strong> = Refunds issued to customers</p>
+        <p><strong>+ Reimbursements</strong> = Money Amazon paid you back (damaged inventory, overcharges, etc.)</p>
+        <p><strong>&minus; Other Fees</strong> = Shipping services, miscellaneous charges</p>
+        <p><strong>&minus; Account Reserve</strong> = General holdback Amazon maintains (enter this manually)</p>
+        <p><strong>&minus; Deferred Transactions</strong> = Orders still in the return window (not yet paid out)</p>
+        <p class="border-t border-gray-300 pt-2"><strong>= Expected Disbursement</strong></p>
+      </div>
+      <p>Then: <strong>Discrepancy</strong> = Expected Disbursement &minus; Actual Disbursement (what Amazon actually transferred to your bank).</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Understanding the Result</h3>
+      <div class="space-y-2">
+        <div class="flex gap-3 items-start">
+          <span class="flex-shrink-0 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">OK</span>
+          <p>Discrepancy is under ₹100 (configurable threshold). This is normal rounding — Amazon's payout matches.</p>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="flex-shrink-0 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">CHECK</span>
+          <p>Discrepancy is above threshold. Amazon either owes you money or overpaid. Investigate using the Deep Dive table below.</p>
+        </div>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Deferred Transactions Explained</h3>
+      <p>When a customer buys a product, Amazon doesn't immediately pay you. They hold the money during the return window (typically 30 days) to cover potential refunds. These held amounts are "deferred."</p>
+      <ul class="list-disc list-inside space-y-1 ml-4">
+        <li>The dashboard <strong>excludes deferred from your revenue</strong> — you haven't received the money yet, so it's not counted as income</li>
+        <li>The reconciliation <strong>subtracts deferred from expected payout</strong> — Amazon is right to not have paid you this yet</li>
+        <li>When Amazon eventually pays out those deferred orders, the money shows up as a Transfer — but the system may show a temporary positive discrepancy since it doesn't track which specific deferred orders were paid</li>
+      </ul>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Account Reserve</h3>
+      <p>Amazon holds a percentage of your account as a general reserve against chargebacks and high-value returns. This is different from order-level deferment — it's a blanket hold. Check your Reserve Details in Seller Central to find this number, then enter it in the Reconciliation page filter.</p>
+
+      <h3 class="font-bold text-gray-800 text-base mt-4 mb-2">Deep Dive Table</h3>
+      <p>The detailed payout history breaks down each bank transfer by its component parts — gross sales, fees, promotions, refunds, and reimbursements — so you can trace exactly where the money went for each payout cycle.</p>
+    </div>
+  </section>
+
+  <!-- Net Income Formula -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">How Net Income Is Calculated</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>Every number on this dashboard flows from one master formula. Here's the exact breakdown:</p>
+      <div class="bg-gray-50 rounded-lg p-6 font-mono text-xs space-y-2">
+        <p class="text-green-700 font-bold">+ Sales (product sales from orders)</p>
+        <p class="text-green-700">+ Reimbursements (Amazon paying you back)</p>
+        <p class="text-red-600">&minus; FBA Fees (warehousing, picking, packing, shipping)</p>
+        <p class="text-red-600">&minus; Selling Fees (Amazon's referral/commission fee)</p>
+        <p class="text-red-600">&minus; Other Amazon Fees (storage, labels, processing)</p>
+        <p class="text-red-600">&minus; Refunds (customer returns)</p>
+        <p class="text-red-600">&minus; Advertising Cost (Sponsored Products spend)</p>
+        <p class="text-red-600">&minus; COGS (cost of making/buying the product)</p>
+        <p class="text-red-600">&minus; Operating Expenses (rent, software, salaries, etc.)</p>
+        <p class="text-red-600">&minus; Promotions (coupons, deals, rebates)</p>
+        <p class="border-t border-gray-400 pt-2 font-bold text-blue-800">= Net Income (your true profit)</p>
+      </div>
+      <p class="text-gray-500 italic">Note: Deferred transactions are excluded from all calculations until they're actually disbursed.</p>
+    </div>
+  </section>
+
+  <!-- Amazon Fee Breakdown -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Understanding Amazon's Fee Types</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <p>Amazon charges multiple fees on every sale. Here's what each one means:</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold text-gray-800">FBA Fees (Fulfillment by Amazon)</p>
+          <p class="text-gray-500 text-xs mt-1">Charged when you use FBA. Covers picking, packing, shipping, and customer service. Varies by product size and weight. Typically 20-35% of sale price.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold text-gray-800">Selling Fees (Referral Fee)</p>
+          <p class="text-gray-500 text-xs mt-1">Amazon's commission — usually 15% of sale price (varies by category). This is what you pay for access to Amazon's marketplace.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold text-gray-800">Other Amazon Fees</p>
+          <p class="text-gray-500 text-xs mt-1">Includes monthly storage fees, label fees, long-term storage penalties, removal orders, and miscellaneous charges. These add up — check monthly.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold text-gray-800">Promotional Rebates</p>
+          <p class="text-gray-500 text-xs mt-1">Discounts from coupons, Lightning Deals, and promotions. These reduce your revenue directly. Tracked separately so you can see the true cost of each promotion.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin Page -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin — Setup & Maintenance</h2>
+    <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold">COGS (Cost of Goods Sold)</p>
+          <p class="text-gray-500 text-xs mt-1">Set the per-unit cost for each SKU. This is critical — without accurate COGS, your profit numbers are meaningless. Update whenever your supplier pricing changes.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold">Local Inventory</p>
+          <p class="text-gray-500 text-xs mt-1">Track your local stock levels separate from Amazon's FBA inventory. Helps you plan replenishments and avoid stockouts.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold">Operating Expenses</p>
+          <p class="text-gray-500 text-xs mt-1">Log business overhead — software subscriptions, rent, salaries, packaging, etc. These get allocated proportionally to each SKU for true profitability analysis.</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="font-bold">Backup Database</p>
+          <p class="text-gray-500 text-xs mt-1">Download a backup of all your data. Do this regularly — especially before uploading large amounts of data.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">Frequently Asked Questions</h2>
+    <div class="space-y-3">
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq1" class="faq-toggle hidden">
+        <label for="faq1" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">Why does my Net Income look different from what Amazon shows?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          Amazon's "Net Proceeds" doesn't include COGS (what you paid for the product), operating expenses (rent, software, salaries), or advertising costs in the same way. This dashboard calculates your <em>true</em> profit after every business cost, not just Amazon fees. That's why the number is lower — but it's more accurate.
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq2" class="faq-toggle hidden">
+        <label for="faq2" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">What happens if I upload the same CSV twice?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          The system auto-detects the date range of the CSV and clears existing records in that range before re-importing. So re-uploading the same file is safe — it won't create duplicates. It's essentially a refresh.
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq3" class="faq-toggle hidden">
+        <label for="faq3" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">I only have one month of data. Can I still use the dashboard?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          Yes! Upload as many months as you have. The dashboard defaults to showing all available data (lifetime view). Period comparisons (MoM, YoY) will show "—" for periods where data isn't available. The more months you upload, the more trend data you get.
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq4" class="faq-toggle hidden">
+        <label for="faq4" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">What is the "Account Reserve" in Reconciliation?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          Amazon holds back a percentage of your payments as a general reserve — typically 1-5% of your account's rolling sales. This covers potential chargebacks and high-value returns. It's separate from per-order deferment. Check "Reserve Details" in Seller Central to see the current amount, then enter it in the Reconciliation page filter.
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq5" class="faq-toggle hidden">
+        <label for="faq5" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">Why are some metrics showing ₹0?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          Usually because the corresponding report hasn't been uploaded yet. COGS shows ₹0 if you haven't set per-unit costs in Admin. Ads Cost shows ₹0 if you haven't uploaded the advertising report. Sessions/CVR show ₹0 without the Business Report. Upload the relevant reports to populate these metrics.
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <input type="checkbox" id="faq6" class="faq-toggle hidden">
+        <label for="faq6" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition">
+          <span class="font-semibold text-gray-800">How do I handle multi-marketplace (e.g., .in and .com) accounts?</span>
+          <span class="faq-arrow text-gray-400 transition-transform duration-200">&#9660;</span>
+        </label>
+        <div class="faq-answer px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+          Currently the dashboard is designed for a single Amazon marketplace. If you sell on multiple marketplaces, upload settlement reports for each marketplace separately. The data will be aggregated — keep this in mind when interpreting account-wide metrics.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Support -->
+  <section class="bg-blue-50 rounded-xl border border-blue-200 p-8 text-center">
+    <h2 class="text-xl font-bold text-gray-800 mb-2">Need Help?</h2>
+    <p class="text-gray-600 text-sm">Contact your KABA Brands account manager for setup assistance, data issues, or custom reporting requests.</p>
+  </section>
 
 </main>
+
+<footer class="container mx-auto px-6 py-8 border-t border-gray-200 mt-12 text-center text-xs text-gray-400">
+  KABA Brands Financial Dashboard v1.0
+</footer>
 </body>
 </html>

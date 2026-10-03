@@ -17,8 +17,7 @@
         <a href="/sku-insights" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">SKU Insights</a>
         <a href="/advertising" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Advertising</a>
         <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
-        <a href="/promotions" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Promotions</a>
-                        <a href="/docs" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Documentation</a>
+                        <a href="/help" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Help / SOP</a>
         <a href="/audit" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Upload</a>
         <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
       </nav>
@@ -48,17 +47,22 @@
       ] %}
       {% for label, val, color, prefix in cards %}
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition">
-        <p class="text-xs font-medium text-gray-500 mb-1">{{ label }}</p>
-        <p class="text-xl font-bold text-{{ color }}-600 truncate">{{ prefix }}{{ "{:,.0f}".format(val) if prefix == '₹' else "{:,}".format(val | int) }}</p>
+        <div class="group relative inline-block">
+          <p class="text-xs font-medium text-gray-500 mb-1 cursor-help underline decoration-dotted">{{ label }}</p>
+          {% if label == 'Net Income' %}
+          <span class="hidden group-hover:block absolute z-50 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2 w-56 text-center shadow-lg">Total Sales minus all known costs (COGS, Ads, Refunds, Fees, Promos, OpEx, GST)</span>
+          {% endif %}
+        </div>
+        <p class="text-xl font-bold text-{{ color }}-600 truncate">{{ prefix }}{{ "{:,.2f}".format(val) if prefix == '₹' else "{:,}".format(val | int) }}</p>
       </div>
       {% endfor %}
       <!-- True Profit / Sale card with tooltip -->
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition">
         <div class="group relative inline-block">
           <p class="text-xs font-medium text-gray-500 mb-1 cursor-help underline decoration-dotted">True Profit / Sale</p>
-          <span class="hidden group-hover:block absolute z-50 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2 w-48 text-center shadow-lg">Formula: Net Income / Gross Units Sold</span>
+          <span class="hidden group-hover:block absolute z-50 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2 w-56 text-center shadow-lg">Net Income / Units Sold</span>
         </div>
-        <p class="text-xl font-bold {% if summary.Profit_Per_Unit >= 0 %}text-green-600{% else %}text-red-600{% endif %} truncate">₹{{ "{:,.0f}".format(summary.Profit_Per_Unit) }}</p>
+        <p class="text-xl font-bold {% if summary.Profit_Per_Unit >= 0 %}text-green-600{% else %}text-red-600{% endif %} truncate">₹{{ "{:,.2f}".format(summary.Profit_Per_Unit) }}</p>
       </div>
       <!-- Account CVR card with tooltip -->
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition">
@@ -74,7 +78,7 @@
           <p class="text-xs font-medium text-gray-500 mb-1 cursor-help underline decoration-dotted">Promos & Deals</p>
           <span class="hidden group-hover:block absolute z-50 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2 w-48 text-center shadow-lg">Total cost of coupons, deals, and rebates</span>
         </div>
-        <p class="text-xl font-bold text-orange-600 truncate">₹{{ "{:,.0f}".format(summary.Promotions) }}</p>
+        <p class="text-xl font-bold text-orange-600 truncate">₹{{ "{:,.2f}".format(summary.Promotions) }}</p>
       </div>
     </div>
   </section>
@@ -156,12 +160,12 @@
             <td class="py-2 px-3 text-right font-semibold">
               {% if key in ['TACOS', 'Return_Pct'] %}{{ data.current }}%
               {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.current | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.current) }}{% endif %}
+              {% else %}₹{{ "{:,.2f}".format(data.current) }}{% endif %}
             </td>
             <td class="py-2 px-3 text-right text-gray-500">
               {% if key in ['TACOS', 'Return_Pct'] %}{{ data.mom }}%
               {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.mom | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.mom) }}{% endif %}
+              {% else %}₹{{ "{:,.2f}".format(data.mom) }}{% endif %}
             </td>
             <td class="py-2 px-3 text-right font-medium {% if data.mom_pct is not none %}{% if data.mom_pct > 0 %}text-green-600{% elif data.mom_pct < 0 %}text-red-600{% else %}text-gray-400{% endif %}{% else %}text-gray-300{% endif %}">
               {% if data.mom_pct is not none %}{{ "+" if data.mom_pct > 0 else "" }}{{ data.mom_pct }}%{% else %}—{% endif %}
@@ -169,7 +173,7 @@
             <td class="py-2 px-3 text-right text-gray-500">
               {% if key in ['TACOS', 'Return_Pct'] %}{{ data.yoy }}%
               {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.yoy | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.yoy) }}{% endif %}
+              {% else %}₹{{ "{:,.2f}".format(data.yoy) }}{% endif %}
             </td>
             <td class="py-2 px-3 text-right font-medium {% if data.yoy_pct is not none %}{% if data.yoy_pct > 0 %}text-green-600{% elif data.yoy_pct < 0 %}text-red-600{% else %}text-gray-400{% endif %}{% else %}text-gray-300{% endif %}">
               {% if data.yoy_pct is not none %}{{ "+" if data.yoy_pct > 0 else "" }}{{ data.yoy_pct }}%{% else %}—{% endif %}
@@ -212,11 +216,11 @@
           </div>
           <div class="text-center p-4 bg-orange-50 rounded-lg">
             <p class="text-xs text-orange-500 font-medium">Profit/Unit</p>
-            <p class="text-2xl font-bold text-orange-700">₹{{ "{:,.0f}".format(summary.Profit_Per_Unit) }}</p>
+            <p class="text-2xl font-bold text-orange-700">₹{{ "{:,.2f}".format(summary.Profit_Per_Unit) }}</p>
           </div>
           <div class="text-center p-4 bg-blue-50 rounded-lg col-span-2">
             <p class="text-xs text-blue-500 font-medium">Pending Deferred (Amazon Owes)</p>
-            <p class="text-2xl font-bold text-blue-700">₹{{ "{:,.0f}".format(summary.Owed_Deferred) }}</p>
+            <p class="text-2xl font-bold text-blue-700">₹{{ "{:,.2f}".format(summary.Owed_Deferred) }}</p>
           </div>
         </div>
       </div>

@@ -1,32 +1,55 @@
 import pandas as pd
-import xml.etree.ElementTree as ET
 import datetime
 import logging
+import csv
+import io
+import xml.etree.ElementTree as ET
 import models
 from sqlalchemy.orm import Session
 from utils import clean_numeric
 
 
+def _count_csv_fields(line: str) -> int:
+    """Return number of comma-separated fields in a CSV line (respects quotes)."""
+    try:
+        reader = csv.reader(io.StringIO(line))
+        return len(next(reader))
+    except Exception:
+        return 0
+
+
 def _detect_csv_format(file_path):
     """Detect whether a CSV is the detailed settlement or Transaction View format."""
     with open(file_path, 'r', encoding='utf-8-sig') as f:
-        lines = f.readlines()
+        lines = []
+        for _ in range(100):
+            line = f.readline()
+            if not line:
+                break
+            lines.append(line)
 
-    header_idx = next((i for i, line in enumerate(lines) if 'date/time' in line.lower()), None)
+    # Match 'date/time' only on lines that are actual CSV headers (>=3 fields)
+    header_idx = next((i for i, line in enumerate(lines)
+                       if 'date/time' in line.lower()
+                       and _count_csv_fields(line) >= 3), None)
     if header_idx is not None:
         return 'detailed', header_idx
 
-    if lines and 'date' in lines[0].lower():
+    # Metadata lines like "Date/Time: Posted ..." have 1 field; skip them.
+    # Only match if the line has >=3 fields (real CSV header).
+    if lines and 'date' in lines[0].lower() and _count_csv_fields(lines[0]) >= 3:
         return 'transaction_view', 0
 
-    return 'unknown', 0
+    raise ValueError(
+        f"Cannot detect CSV format in {file_path}. "
+        f"First few lines: {lines[:3]}")
 
 
 def sync_settlement_csv(file_path, db_session: Session, month_start=None, month_end=None, is_deferred=False):
     """Parse Settlement or Deferred CSV and insert into FinancialEvent table.
 
-    - When month range is given AND is_deferred=False: clears that month's non-deferred records first.
-    - When is_deferred=True: clears only deferred records for that month (if range given).
+    - Auto-detects date range from CSV data for scoped deletion.
+    - When month_start/month_end are given, uses those as fallback.
     - Returns count of new records inserted.
     """
     fmt, header_idx = _detect_csv_format(file_path)
@@ -46,11 +69,31 @@ def sync_settlement_csv(file_path, db_session: Session, month_start=None, month_
     else:
         raise ValueError(f"Unknown CSV format for {file_path}")
 
-    # Scoped delete: only wipe records matching deferred flag for this month
-    if month_start and month_end:
+    # Auto-detect date range from CSV data
+    csv_dates = []
+    date_col = 'date/time' if 'date/time' in df.columns else 'date'
+    if date_col in df.columns:
+        for val in df[date_col]:
+            try:
+                csv_dates.append(pd.to_datetime(val, format='mixed', dayfirst=True).date())
+            except Exception:
+                pass
+
+    if csv_dates:
+        csv_start = min(csv_dates)
+        csv_end = max(csv_dates)
+    elif month_start and month_end:
+        csv_start = month_start
+        csv_end = month_end
+    else:
+        csv_start = None
+        csv_end = None
+
+    # Scoped delete: wipe records in the auto-detected date range
+    if csv_start and csv_end:
         db_session.query(models.FinancialEvent).filter(
-            models.FinancialEvent.posted_date >= month_start,
-            models.FinancialEvent.posted_date <= month_end,
+            models.FinancialEvent.posted_date >= csv_start,
+            models.FinancialEvent.posted_date <= csv_end,
             models.FinancialEvent.is_deferred == is_deferred
         ).delete()
 
@@ -134,13 +177,13 @@ def sync_settlement_csv(file_path, db_session: Session, month_start=None, month_
             amazon_order_id=order_id,
             posted_date=posted_date,
             sku=sku,
-            type=event_type,
+            event_type=event_type,
             description=description,
             quantity=quantity if not is_refund else 0,
             product_sales=product_sales if not (is_refund or is_reimbursement) else 0.0,
             fba_fees=fba_fees,
             selling_fees=selling_fees,
-            refunds=abs(total_amt) if is_refund else 0.0,
+            other_fees=other_fees,
             total_amount=total_amt,
             promotional_rebates=rebates,
             is_deferred=is_deferred
@@ -173,17 +216,24 @@ def sync_ads_report(file_path, db_session: Session, month_start=None):
             models.AdsMetric.report_month == month_start
         ).delete()
 
+    def find_column(patterns, default):
+        for col in df.columns:
+            col_lower = col.lower()
+            if any(p.lower() in col_lower for p in patterns):
+                return col
+        return default
+
     numeric_cols = {
-        'impressions': 'Impressions',
-        'clicks': 'Clicks',
-        'ctr': 'Click-Through Rate (CTR)',
+        'impressions': find_column(['impressions'], 'Impressions'),
+        'clicks': find_column(['clicks'], 'Clicks'),
+        'ctr': find_column(['click-through rate', 'ctr'], 'Click-Through Rate (CTR)'),
         'spend': spend_col,
-        'sales_7d': '7 Day Total Sales (₹)',
-        'acos': 'Total Advertising Cost of Sales (ACOS) ',
-        'roas': 'Total Return on Advertising Spend (ROAS)',
-        'orders_7d': '7 Day Total Orders (#)',
-        'units_7d': '7 Day Total Units (#)',
-        'cvr': '7 Day Conversion Rate',
+        'sales_7d': find_column(['7 day total sales', 'sales'], '7 Day Total Sales (₹)'),
+        'acos': find_column(['advertising cost of sales', 'acos'], 'Total Advertising Cost of Sales (ACOS) '),
+        'roas': find_column(['return on advertising spend', 'roas'], 'Total Return on Advertising Spend (ROAS)'),
+        'orders_7d': find_column(['7 day total orders', 'orders'], '7 Day Total Orders (#)'),
+        'units_7d': find_column(['7 day total units', 'units'], '7 Day Total Units (#)'),
+        'cvr': find_column(['conversion rate', 'cvr'], '7 Day Conversion Rate'),
     }
 
     for _, row in df.iterrows():
@@ -257,9 +307,29 @@ def sync_ads_report(file_path, db_session: Session, month_start=None):
 
 
 def sync_business_csv(file_path, db_session: Session = None, month_start=None):
-    """Parse Business Report CSV, store SKU-level session data, return summary metrics."""
-    df = pd.read_csv(file_path)
+    """Parse Business Report CSV, store SKU-level session data, return summary metrics.
+
+    Handles both standard SKU-level reports and irregular dashboard-exports
+    gracefully (returns zeros and logs a warning when expected columns are missing).
+    """
+    try:
+        df = pd.read_csv(file_path, on_bad_lines='skip')
+    except Exception:
+        try:
+            df = pd.read_csv(file_path, encoding='utf-8-sig', on_bad_lines='skip')
+        except Exception as e:
+            raise ValueError(
+                f"Business report is not a valid CSV: {e}") from e
+
     df.columns = [c.strip() for c in df.columns]
+
+    # Guard: if the essential columns don't exist, this is the wrong file type
+    has_sku_data = 'SKU' in df.columns and 'Units Ordered' in df.columns
+    if not has_sku_data:
+        logging.warning(
+            f"Business report at {file_path} lacks SKU-level columns "
+            f"(columns found: {list(df.columns)[:10]}…); returning empty summary")
+        return {"units_ordered": 0, "sessions": 0, "page_views": 0, "conversion_pct": 0.0}
 
     for col in ['Units Ordered', 'Sessions - Total', 'Page Views - Total']:
         if col in df.columns:
@@ -307,25 +377,26 @@ def sync_business_csv(file_path, db_session: Session = None, month_start=None):
 
 
 def sync_returns_xml(file_path, db_session: Session = None, month_start=None):
-    """Parse Returns XML and return total return count."""
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-    total = 0
+    """Parse Amazon Returns XML and return count of return items."""
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+    except Exception as e:
+        raise ValueError(f"Returns report is not a valid XML: {e}") from e
 
-    # Try various Amazon return XML schemas
-    for elem in root.iter():
-        tag = elem.tag.lower().split('}')[-1]
-        if tag in ('return_quantity', 'returnquantity', 'quantity'):
-            try:
-                total += int(elem.text or 0)
-            except (ValueError, TypeError):
-                pass
+    count = 0
+    for msg in root.iter('Message'):
+        for rd in msg.iter('return_details'):
+            for item in rd.iter('item_details'):
+                count += 1
 
-    # Fallback: count Message elements
-    if total == 0:
-        messages = root.findall('.//{*}Message') or root.findall('.//Message')
-        for msg in messages:
-            if msg.text and msg.text.strip():
-                total += 1
+    if count == 0:
+        for msg in root.iter('Message'):
+            for item in msg.iter('item_details'):
+                count += 1
 
-    return total
+    logging.info(f"Returns XML: {count} return items found in {file_path}")
+    return count
+
+
+

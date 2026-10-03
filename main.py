@@ -21,7 +21,7 @@ import auditor
 import json
 import re
 from pydantic import BaseModel
-import markdown
+
 
 load_dotenv()
 
@@ -30,11 +30,15 @@ class SettingsUpdate(BaseModel):
     max_tacos_pct: float
     max_return_pct: float
     min_net_profit_per_unit: float
+    reconciliation_threshold: float = 100.0
 
-alembic_cfg = AlembicConfig("alembic.ini")
-alembic_command.upgrade(alembic_cfg, "head")
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    alembic_cfg = AlembicConfig("alembic.ini")
+    alembic_command.upgrade(alembic_cfg, "head")
+    yield
 
-app = FastAPI(title="Unibliss Fin Dashboard")
+app = FastAPI(title="Unibliss Fin Dashboard", lifespan=lifespan)
 
 os.makedirs("templates", exist_ok=True)
 os.makedirs("static", exist_ok=True)
@@ -52,8 +56,7 @@ logger = logging.getLogger(__name__)
 async def global_exception_handler(request: Request, exc: Exception):
     req_id = getattr(request.state, "request_id", "????")
     logger.error(f"[{req_id}] Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
-    return templates.TemplateResponse("error.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "error.html", {
         "error": str(exc),
         "request_id": req_id,
     }, status_code=500)
@@ -73,13 +76,25 @@ async def add_request_id(request: Request, call_next):
 
 def _parse_dates(start_date, end_date):
     today = datetime.date.today()
-    if not start_date:
-        start_date = (today - datetime.timedelta(days=179)).strftime("%Y-%m-%d")
-    if not end_date:
-        end_date = today.strftime("%Y-%m-%d")
-    parsed_start = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    parsed_end   = datetime.datetime.strptime(end_date,   "%Y-%m-%d").date()
-    return start_date, end_date, parsed_start, parsed_end
+    out_start = start_date if start_date else (today - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+    out_end = end_date if end_date else today.strftime("%Y-%m-%d")
+
+    def _parse(raw):
+        if not raw:
+            return None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                return datetime.datetime.strptime(raw, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    parsed_start = _parse(out_start) or (today - datetime.timedelta(days=30))
+    parsed_end   = _parse(out_end) or today
+
+    out_start = parsed_start.strftime("%Y-%m-%d")
+    out_end   = parsed_end.strftime("%Y-%m-%d")
+    return out_start, out_end, parsed_start, parsed_end
 
 
 #  Dashboard 
@@ -103,14 +118,13 @@ async def index(request: Request, start_date: str = None, end_date: str = None, 
     if events:
         df = pd.DataFrame([{
             "day": e.posted_date.strftime('%Y-%m-%d'),
-            "sales": e.product_sales if e.type == 'Order' else 0.0,
-            "net_profit": e.total_amount if e.type == 'Order' else 0.0
+            "sales": e.product_sales if e.event_type == 'Order' else 0.0,
+            "net_profit": e.total_amount if e.event_type != 'Transfer' else 0.0
         } for e in events])
         daily_stats = df.groupby('day').agg({'sales': 'sum', 'net_profit': 'sum'}).reset_index()
         daily_data = daily_stats.to_dict(orient='records')
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "index.html", {
         "summary": summary,
         "comparison": comparison,
         "daily_data": daily_data,
@@ -188,8 +202,7 @@ async def sku_insights(request: Request, start_date: str = None, end_date: str =
 
     comparison = dp.get_comparison_data(db, parsed_start, parsed_end)
     
-    return templates.TemplateResponse("sku_insights.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "sku_insights.html", {
         "sku_metrics": sku_metrics,
         "comparison": comparison,
         "start_date": start_date,
@@ -203,8 +216,7 @@ async def sku_insights(request: Request, start_date: str = None, end_date: str =
 async def advertising(request: Request, start_date: str = None, end_date: str = None, sku: str = None, brand: str = None, db: Session = Depends(get_db)):
     start_date, end_date, parsed_start, parsed_end = _parse_dates(start_date, end_date)
     ads = dp.get_ads_summary(db, parsed_start, parsed_end, sku_filter=sku, brand_filter=brand)
-    return templates.TemplateResponse("advertising.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "advertising.html", {
         "ads": ads,
         "start_date": start_date,
         "end_date": end_date,
@@ -221,8 +233,7 @@ async def reconciliation(request: Request, start_date: str = None, end_date: str
     recon = dp.get_reconciliation_check(db, parsed_start, parsed_end, reserve_balance=reserve_balance)
     summary = dp.calculate_monthly_summary(db, parsed_start, parsed_end)
     deep_dive = dp.get_disbursement_deep_dive(db, parsed_start, parsed_end)
-    return templates.TemplateResponse("reconciliation.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "reconciliation.html", {
         "recon": recon,
         "summary": summary,
         "deep_dive": deep_dive,
@@ -238,8 +249,7 @@ async def reconciliation(request: Request, start_date: str = None, end_date: str
 async def promotions_page(request: Request, db: Session = Depends(get_db)):
     promos = db.query(models.Promotion).order_by(models.Promotion.start_date.desc()).all()
     inventory = db.query(models.Inventory).all()
-    return templates.TemplateResponse("promotions.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "promotions.html", {
         "promos": promos,
         "inventory": inventory,
     })
@@ -282,23 +292,9 @@ async def promotions_delete(promo_id: int, db: Session = Depends(get_db)):
 
 #  SOP 
 
-@app.get("/docs", response_class=HTMLResponse)
-async def docs_page(request: Request):
-    sop_file = "FORMULA_DOCUMENTATION.md"
-    if not os.path.exists(sop_file):
-        with open(sop_file, "w") as f:
-            f.write("# Standard Operating Procedure\nEdit this content from the UI.")
-    
-    with open(sop_file, "r") as f:
-        content_md = f.read()
-    
-    content_html = markdown.markdown(content_md, extensions=['extra', 'nl2br', 'sane_lists'])
-    
-    return templates.TemplateResponse("docs.html", {
-        "request": request, 
-        "content_html": content_html,
-        "content_md": content_md
-    })
+@app.get("/help", response_class=HTMLResponse)
+async def help_page(request: Request):
+    return templates.TemplateResponse(request, "docs.html", {})
 
 #  Admin 
 
@@ -309,18 +305,25 @@ async def admin(request: Request, db: Session = Depends(get_db)):
     recent_expenses = db.query(models.OperatingExpense).order_by(
         models.OperatingExpense.date_incurred.desc()).limit(20).all()
     last_sync = db.query(models.SyncLog).order_by(models.SyncLog.id.desc()).first()
-    return templates.TemplateResponse("admin.html", {
-        "request": request,
+    config_data = {}
+    try:
+        import json
+        with open('config.json', 'r') as f:
+            config_data = json.load(f)
+    except Exception:
+        pass
+    return templates.TemplateResponse(request, "admin.html", {
         "inventory": inventory,
         "active_cogs": active_cogs,
         "expenses": recent_expenses,
         "last_sync": last_sync,
         "datetime": datetime,
+        "gst_rate": config_data.get('gst_rate', 0),
     })
 
 @app.get("/admin/backup")
 async def backup_database():
-    db_path = os.path.join(os.getcwd(), "unibliss_erp.db")
+    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "unibliss_erp.db")
     if os.path.exists(db_path):
         return FileResponse(path=db_path, filename="unibliss_erp.db", media_type="application/x-sqlite3")
     return {"error": "Database file not found"}
@@ -359,6 +362,20 @@ async def add_expense(
     db.commit()
     return RedirectResponse(url="/admin", status_code=303)
 
+@app.post("/admin/gst")
+async def update_gst_rate(gst_rate: float = Form(...)):
+    import json
+    config_path = 'config.json'
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    except Exception:
+        config = {}
+    config['gst_rate'] = gst_rate
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+    return RedirectResponse(url="/admin?msg=GST+rate+updated", status_code=303)
+
 @app.post("/admin/reset-db")
 async def reset_db(request: Request, db: Session = Depends(get_db)):
     try:
@@ -390,7 +407,7 @@ async def import_whatsapp(db: Session = Depends(get_db)):
             'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
         }
         for m_name, m_num in months.items():
-            if m_name in filename:
+            if re.search(rf'\b{m_name}\b', filename, re.IGNORECASE):
                 # Look for year
                 year_match = re.search(r'20\d{2}', filename)
                 if year_match:
@@ -425,10 +442,6 @@ async def import_whatsapp(db: Session = Depends(get_db)):
             elif 'searchterm' in f_lower:
                 spend = processor.sync_ads_report(path, db, month_start=m_start)
                 results.append(f"Ads ({f}): ₹{spend:,.2f} spend")
-            
-            elif 'returnreport' in f_lower:
-                ret_count = processor.sync_returns_xml(path, db_session=db, month_start=m_start)
-                results.append(f"Returns ({f}): {ret_count} found")
 
         db.add(models.SyncLog(
             status="Success",
@@ -438,7 +451,16 @@ async def import_whatsapp(db: Session = Depends(get_db)):
         return RedirectResponse(url="/admin?msg=WhatsApp+Import+Successful", status_code=303)
 
     except Exception as e:
+        db.rollback()
         logging.error(f"WhatsApp import failed: {e}", exc_info=True)
+        try:
+            db.add(models.SyncLog(
+                status="Failed",
+                details=f"WhatsApp import failed: {str(e)}"
+            ))
+            db.commit()
+        except Exception:
+            pass
         return HTMLResponse(content=f"Error importing WhatsApp data: {e}", status_code=500)
 
 
@@ -461,7 +483,7 @@ async def update_settings(settings: SettingsUpdate):
 
 @app.get("/audit", response_class=HTMLResponse)
 async def audit_page(request: Request):
-    return templates.TemplateResponse("audit.html", {"request": request})
+    return templates.TemplateResponse(request, "audit.html", {})
 
 @app.post("/upload-manual")
 async def upload_manual(
@@ -477,6 +499,7 @@ async def upload_manual(
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
     results = []
+    errors = []
 
     year, mo = map(int, month.split('-'))
     last_day = calendar.monthrange(year, mo)[1]
@@ -492,59 +515,93 @@ async def upload_manual(
             f.write(await uf.read())
         return path
 
-    try:
-        if settlement and settlement.filename:
+    # ── Settlement ──────────────────────────────────────────────
+    if settlement and settlement.filename:
+        try:
             path = await save_file(settlement)
             saved.append(path)
             count = processor.sync_settlement_csv(
                 path, db, month_start=month_start, month_end=month_end, is_deferred=False)
-            results.append(f"Settlement: {count} records synced")
+            db.commit()
+            results.append(f"Settlement: {count} records")
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Settlement failed: {e}")
+            errors.append(f"Settlement: {e}")
 
-        if deferred and deferred.filename:
+    # ── Deferred ────────────────────────────────────────────────
+    if deferred and deferred.filename:
+        try:
             path = await save_file(deferred)
             saved.append(path)
             count = processor.sync_settlement_csv(
                 path, db, month_start=month_start, month_end=month_end, is_deferred=True)
-            results.append(f"Deferred: {count} records synced")
+            db.commit()
+            results.append(f"Deferred: {count} records")
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Deferred failed: {e}")
+            errors.append(f"Deferred: {e}")
 
-        if business and business.filename:
+    # ── Business ────────────────────────────────────────────────
+    if business and business.filename:
+        try:
             path = await save_file(business)
             saved.append(path)
             biz = processor.sync_business_csv(path, db_session=db, month_start=month_start)
-            results.append(f"Business: {biz['sessions']} sessions, {biz['conversion_pct']}% conversion")
+            db.commit()
+            results.append(
+                f"Business: {biz['sessions']} sessions, {biz['conversion_pct']}% conversion")
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Business failed: {e}")
+            errors.append(f"Business: {e}")
 
-        if ads and ads.filename:
+    # ── Ads ─────────────────────────────────────────────────────
+    if ads and ads.filename:
+        try:
             path = await save_file(ads)
             saved.append(path)
             spend = processor.sync_ads_report(path, db, month_start=month_start)
-            results.append(f"Ads: ₹{spend:,.2f} total spend")
+            db.commit()
+            results.append(f"Ads: ₹{spend:,.2f} spend")
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Ads failed: {e}")
+            errors.append(f"Ads: {e}")
 
-        if returns and returns.filename:
+    # ── Returns ─────────────────────────────────────────────────
+    if returns and returns.filename:
+        try:
             path = await save_file(returns)
             saved.append(path)
-            ret_count = processor.sync_returns_xml(path, db_session=db, month_start=month_start)
-            results.append(f"Returns: {ret_count} returns found")
+            count = processor.sync_returns_xml(path, db_session=db, month_start=month_start)
+            results.append(f"Returns: {count} items")
+        except Exception as e:
+            logger.warning(f"Returns failed: {e}")
+            errors.append(f"Returns: {e}")
 
+    # ── Log & redirect ─────────────────────────────────────────
+    if errors:
+        db.add(models.SyncLog(
+            status="Partial",
+            details=f"Upload for {month}: OK={'; '.join(results)} | ERR={'; '.join(errors)}"
+        ))
+    else:
         db.add(models.SyncLog(
             status="Success",
-            details=f"Monthly upload for {month}: " + "; ".join(results)
+            details=f"Monthly upload for {month}: {'; '.join(results)}"
         ))
-        db.commit()
+    db.commit()
 
-        return RedirectResponse(
-            url=f"/?start_date={month_start}&end_date={month_end}",
-            status_code=303
-        )
+    for p in saved:
+        if os.path.exists(p):
+            os.remove(p)
 
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Upload failed, all changes rolled back: {e}", exc_info=True)
-        return templates.TemplateResponse("audit.html", {
-            "request": request,
-            "error": f"Upload failed. No data was saved.<br>{e}",
+    if errors:
+        error_html = "<br>".join(errors)
+        return templates.TemplateResponse(request, "audit.html", {
+            "error": error_html,
         }, status_code=400)
 
-    finally:
-        for p in saved:
-            if os.path.exists(p):
-                os.remove(p)
+    return RedirectResponse(url="/", status_code=303)

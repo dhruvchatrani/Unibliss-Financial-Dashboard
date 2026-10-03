@@ -15,8 +15,7 @@
         <a href="/sku-insights" class="text-blue-600 font-semibold px-3 py-1 rounded-lg bg-blue-50 transition">SKU Insights</a>
         <a href="/advertising" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Advertising</a>
         <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
-        <a href="/promotions" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Promotions</a>
-                        <a href="/docs" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Documentation</a>
+                        <a href="/help" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Help / SOP</a>
         <a href="/audit" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Upload</a>
         <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
       </nav>
@@ -30,70 +29,6 @@
   </div>
 </header>
 <main class="container mx-auto px-6 py-6 space-y-8">
-
-  <!-- Comparison Table -->
-  {% if comparison and comparison.comparison %}
-  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Account-Wide Period Comparisons</h2>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200">
-            <th class="text-left py-2 px-3 text-gray-500 font-medium">Metric</th>
-            <th class="text-right py-2 px-3 text-gray-700 font-semibold">Current</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">Last Week</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">WoW Δ</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">Prev Month</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">MoM Δ</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">Last Year</th>
-            <th class="text-right py-2 px-3 text-gray-500 font-medium">YoY Δ</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for key, data in comparison.comparison.items() %}
-          <tr class="hover:bg-gray-50">
-            <td class="py-2 px-3 font-medium text-gray-700">{{ key.replace('_', ' ') }}</td>
-            <td class="py-2 px-3 text-right font-semibold">
-              {% if key in ['TACOS', 'Return_Pct'] %}{{ data.current }}%
-              {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.current | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.current) }}{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right text-gray-500">
-              {% if key in ['TACOS', 'Return_Pct'] %}{{ data.wow }}%
-              {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.wow | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.wow) }}{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right font-medium {% if data.wow_pct is not none %}{% if data.wow_pct > 0 %}text-green-600{% elif data.wow_pct < 0 %}text-red-600{% else %}text-gray-400{% endif %}{% else %}text-gray-300{% endif %}">
-              {% if data.wow_pct is not none %}{{ "+" if data.wow_pct > 0 else "" }}{{ data.wow_pct }}%{% else %}—{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right text-gray-500">
-              {% if key in ['TACOS', 'Return_Pct'] %}{{ data.mom }}%
-              {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.mom | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.mom) }}{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right font-medium {% if data.mom_pct is not none %}{% if data.mom_pct > 0 %}text-green-600{% elif data.mom_pct < 0 %}text-red-600{% else %}text-gray-400{% endif %}{% else %}text-gray-300{% endif %}">
-              {% if data.mom_pct is not none %}{{ "+" if data.mom_pct > 0 else "" }}{{ data.mom_pct }}%{% else %}—{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right text-gray-500">
-              {% if key in ['TACOS', 'Return_Pct'] %}{{ data.yoy }}%
-              {% elif key == 'Units_Sold' %}{{ "{:,}".format(data.yoy | int) }}
-              {% else %}₹{{ "{:,.0f}".format(data.yoy) }}{% endif %}
-            </td>
-            <td class="py-2 px-3 text-right font-medium {% if data.yoy_pct is not none %}{% if data.yoy_pct > 0 %}text-green-600{% elif data.yoy_pct < 0 %}text-red-600{% else %}text-gray-400{% endif %}{% else %}text-gray-300{% endif %}">
-              {% if data.yoy_pct is not none %}{{ "+" if data.yoy_pct > 0 else "" }}{{ data.yoy_pct }}%{% else %}—{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <p class="text-xs text-gray-400 mt-3">WoW = exactly 7 days prior · MoM = exactly 1 month prior · YoY = exactly 1 year prior</p>
-  </section>
-  {% else %}
-  <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center justify-center">
-    <p class="text-gray-500 italic">No historical period comparison data available for the selected dates.</p>
-  </section>
-  {% endif %}
 
   <section>
     <div class="mb-6">
@@ -139,7 +74,7 @@
           <tr class="hover:bg-gray-50 transition">
             <td class="px-4 py-3 font-semibold text-gray-800 font-mono text-xs">{{ row['Sku'] }}</td>
             <td class="px-4 py-3 text-right text-gray-600">{{ row['Units Ordered'] | int }}</td>
-            <td class="px-4 py-3 text-right text-gray-700">₹{{ "{:,.0f}".format(row['Product Sales']) }}</td>
+            <td class="px-4 py-3 text-right text-gray-700">₹{{ "{:,.2f}".format(row['Product Sales']) }}</td>
             <td class="px-2 py-3 text-right text-xs font-medium">
               {% if row.get('WoW_Sales_Pct') != None %}
                 <span class="{% if row['WoW_Sales_Pct'] > 0 %}text-green-600{% elif row['WoW_Sales_Pct'] < 0 %}text-red-600{% else %}text-gray-400{% endif %}">
@@ -167,14 +102,14 @@
                 <span class="text-gray-300">-</span>
               {% endif %}
             </td>
-            <td class="px-4 py-3 text-right text-red-400">₹{{ "{:,.0f}".format(row['Total COGS']) }}</td>
-            <td class="px-4 py-3 text-right font-medium {% if row['Net Profit'] >= 0 %}text-green-600{% else %}text-red-600{% endif %}">₹{{ "{:,.0f}".format(row['Net Profit']) }}</td>
+            <td class="px-4 py-3 text-right text-red-400">₹{{ "{:,.2f}".format(row['Total COGS']) }}</td>
+            <td class="px-4 py-3 text-right font-medium {% if row['Net Profit'] >= 0 %}text-green-600{% else %}text-red-600{% endif %}">₹{{ "{:,.2f}".format(row['Net Profit']) }}</td>
             <td class="px-4 py-3 text-right font-medium {% if row['Margin_Pct'] >= 20 %}text-green-600{% elif row['Margin_Pct'] >= 10 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ row['Margin_Pct'] }}%</td>
             <td class="px-4 py-3 text-right font-medium {% if row['ROI_Pct'] >= 20 %}text-green-600{% elif row['ROI_Pct'] >= 0 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ row['ROI_Pct'] }}%</td>
-            <td class="px-4 py-3 text-right font-medium {% if row['Profit_Per_Sale'] >= 200 %}text-green-600{% elif row['Profit_Per_Sale'] >= 0 %}text-yellow-600{% else %}text-red-600{% endif %}">₹{{ "{:,.0f}".format(row['Profit_Per_Sale']) }}</td>
-            <td class="px-4 py-3 text-right text-red-400">−₹{{ "{:,.0f}".format(row['Allocated_OpEx']) }}</td>
-            <td class="px-4 py-3 text-right font-bold {% if row['Blended_Net_Profit'] >= 0 %}text-green-600{% else %}text-red-600{% endif %}">₹{{ "{:,.0f}".format(row['Blended_Net_Profit']) }}</td>
-            <td class="px-4 py-3 text-right font-bold {% if row['Blended_Profit_Per_Sale'] >= 200 %}text-green-600{% elif row['Blended_Profit_Per_Sale'] >= 0 %}text-yellow-600{% else %}text-red-600{% endif %}">₹{{ "{:,.0f}".format(row['Blended_Profit_Per_Sale']) }}</td>
+            <td class="px-4 py-3 text-right font-medium {% if row['Profit_Per_Sale'] >= 200 %}text-green-600{% elif row['Profit_Per_Sale'] >= 0 %}text-yellow-600{% else %}text-red-600{% endif %}">₹{{ "{:,.2f}".format(row['Profit_Per_Sale']) }}</td>
+            <td class="px-4 py-3 text-right text-red-400">−₹{{ "{:,.2f}".format(row['Allocated_OpEx']) }}</td>
+            <td class="px-4 py-3 text-right font-bold {% if row['Blended_Net_Profit'] >= 0 %}text-green-600{% else %}text-red-600{% endif %}">₹{{ "{:,.2f}".format(row['Blended_Net_Profit']) }}</td>
+            <td class="px-4 py-3 text-right font-bold {% if row['Blended_Profit_Per_Sale'] >= 200 %}text-green-600{% elif row['Blended_Profit_Per_Sale'] >= 0 %}text-yellow-600{% else %}text-red-600{% endif %}">₹{{ "{:,.2f}".format(row['Blended_Profit_Per_Sale']) }}</td>
             <td class="px-4 py-3 text-right text-gray-500">{{ "{:,}".format(row['Sessions'] | int) }}</td>
             <td class="px-4 py-3 text-right text-gray-500">{{ row['Unit_Session_Pct'] }}%</td>
             <td class="px-4 py-3 text-center">

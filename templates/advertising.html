@@ -16,8 +16,7 @@
         <a href="/sku-insights" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">SKU Insights</a>
         <a href="/advertising" class="text-blue-600 font-semibold px-3 py-1 rounded-lg bg-blue-50 transition">Advertising</a>
         <a href="/reconciliation" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Reconciliation</a>
-        <a href="/promotions" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Promotions</a>
-                        <a href="/docs" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Documentation</a>
+                        <a href="/help" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Help / SOP</a>
         <a href="/audit" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Upload</a>
         <a href="/admin" class="text-gray-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition">Admin</a>
       </nav>
@@ -50,7 +49,7 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
       <p class="text-xs text-gray-500 mb-1">{{ label }}</p>
       <p class="text-2xl font-bold text-{{ color }}-600">
-        {% if suffix == '₹' %}₹{{ "{:,.0f}".format(val) }}
+        {% if suffix == '₹' %}₹{{ "{:,.2f}".format(val) }}
         {% elif suffix == '%' %}{{ val }}%
         {% else %}{{ "{:,}".format(val | int) }}{% endif %}
       </p>

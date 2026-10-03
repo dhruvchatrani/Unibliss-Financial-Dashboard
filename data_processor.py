@@ -36,7 +36,7 @@ def calculate_monthly_summary(db: Session, start_date=None, end_date=None) -> Di
             summary['Owed_Deferred'] += e.total_amount
             continue
 
-        if e.type == 'Order':
+        if e.event_type == 'Order':
             summary['Sales'] += e.product_sales
             summary['FBA_Fees'] += abs(e.fba_fees)
             summary['Selling_Fees'] += abs(e.selling_fees)
@@ -50,28 +50,24 @@ def calculate_monthly_summary(db: Session, start_date=None, end_date=None) -> Di
             summary['Other_Amazon_Fees'] += other_tx - promo_amt
             summary['Promotions'] += promo_amt
 
-        elif e.type == 'Refund':
+        elif e.event_type == 'Refund':
             summary['Refunds'] += abs(e.total_amount)
             summary['Total_Returns'] += 1
 
-        elif e.type == 'Reimbursement':
+        elif e.event_type == 'Reimbursement':
             summary['Reimbursements'] += abs(e.total_amount)
 
-        elif e.type == 'Transfer':
-            if e.total_amount < 0:
-                summary['Disbursements'] += abs(e.total_amount)
+        elif e.event_type == 'Transfer':
+            summary['Disbursements'] += abs(e.total_amount)
 
-        elif e.type == 'Other':
-            if e.description and 'Cost of Advertising' in e.description:
-                summary['Ads_Cost'] += abs(e.total_amount)
-            else:
-                summary['Other_Amazon_Fees'] -= e.total_amount
+        elif e.event_type == 'Other':
+            summary['Other_Amazon_Fees'] += -e.total_amount
 
     # 2. COGS
     active_cogs = db.query(models.COGS).filter(models.COGS.effective_end_date == None).all()
     cogs_map = {c.sku.strip(): c.unit_cost for c in active_cogs}
     for e in events:
-        if e.type == 'Order' and e.sku and e.sku in cogs_map:
+        if e.event_type == 'Order' and e.sku and e.sku in cogs_map:
             summary['COGS'] += cogs_map[e.sku] * (e.quantity or 0)
 
     # 3. OpEx + Ads
@@ -85,7 +81,16 @@ def calculate_monthly_summary(db: Session, start_date=None, end_date=None) -> Di
         if expense.category != 'Amazon Ads':
             summary['OpEx'] += expense.amount
 
-    # 4. Business metrics (sessions/conversion)
+    # Ads cost from AdsMetric table (same authoritative source as /advertising page)
+    ads_query = db.query(models.AdsMetric)
+    if start_date and end_date:
+        ads_query = ads_query.filter(
+            models.AdsMetric.date >= start_date,
+            models.AdsMetric.date <= end_date
+        )
+    summary['Ads_Cost'] = sum(r.spend for r in ads_query.all())
+
+    # 4. Business metrics — priority source for Sales & Units Sold
     biz_query = db.query(models.BusinessMetric)
     if start_date and end_date:
         biz_query = biz_query.filter(
@@ -94,13 +99,44 @@ def calculate_monthly_summary(db: Session, start_date=None, end_date=None) -> Di
         )
     biz_rows = biz_query.all()
     if biz_rows:
+        biz_sales = sum(b.ordered_product_sales for b in biz_rows if b.ordered_product_sales)
+        biz_units = sum(b.units_ordered for b in biz_rows)
         summary['Sessions'] = sum(b.sessions for b in biz_rows)
         summary['Page_Views'] = sum(b.page_views for b in biz_rows)
-        total_units_biz = sum(b.units_ordered for b in biz_rows)
+        if biz_sales > 0:
+            summary['Sales'] = biz_sales
+        if biz_units > 0:
+            summary['Units_Sold'] = biz_units
         if summary['Sessions'] > 0:
-            summary['Unit_Session_Pct'] = round(total_units_biz / summary['Sessions'] * 100, 2)
+            summary['Unit_Session_Pct'] = round(biz_units / summary['Sessions'] * 100, 2)
 
-    # 5. Derived metrics
+    # 5. Derived metrics — all based on booked Sales (business report)
+
+    # GST liability (configurable % — set in Admin page)
+    gst_rate = 0.0
+    try:
+        import json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+            gst_rate = float(config.get('gst_rate', 0))
+    except Exception:
+        pass
+    gst_cost = round(summary['Sales'] * gst_rate / 100, 2) if gst_rate > 0 else 0.0
+    summary['GST_Cost'] = gst_cost
+
+    # Net Income = Total Sales - all known costs
+    summary['Net_Income'] = (
+        summary['Sales']
+        - summary['COGS']
+        - summary['Ads_Cost']
+        - summary['Refunds']
+        - summary['FBA_Fees']
+        - summary['Selling_Fees']
+        - summary['Promotions']
+        - summary['OpEx']
+        - gst_cost
+    )
+
     # Return rate
     if summary['Units_Sold'] > 0:
         summary['Return_Pct'] = round(summary['Total_Returns'] / summary['Units_Sold'] * 100, 2)
@@ -116,30 +152,13 @@ def calculate_monthly_summary(db: Session, start_date=None, end_date=None) -> Di
     if ad_attributed_sales > 0:
         summary['ACOS'] = round(summary['Ads_Cost'] / ad_attributed_sales * 100, 2)
 
-    # TACOS = Total Ad Spend / Total Revenue (Sales only, not reimbursements)
+    # TACOS = Total Ad Spend / Total Sales
     if summary['Sales'] > 0:
         summary['TACOS'] = round(summary['Ads_Cost'] / summary['Sales'] * 100, 2)
 
-    # Net Income: (Revenue) - (Costs)
-    summary['Net_Income'] = (
-        summary['Sales'] + summary['Reimbursements']
-    ) - (
-        summary['Refunds'] + summary['FBA_Fees'] + summary['Selling_Fees'] +
-        summary['Ads_Cost'] + summary['COGS'] + summary['OpEx'] +
-        summary['Other_Amazon_Fees'] + summary['Promotions']
-    )
-
     # Margins
+    gross_profit = summary['Sales'] - summary['COGS'] - summary['Refunds'] - summary['FBA_Fees'] - summary['Selling_Fees'] - summary['Promotions']
     if summary['Sales'] > 0:
-        gross_profit = (
-            summary['Sales'] + summary['Reimbursements']
-            - summary['Refunds']
-            - summary['COGS']
-            - summary['FBA_Fees']
-            - summary['Selling_Fees']
-            - summary['Promotions']
-            - summary['Other_Amazon_Fees']
-        )
         summary['Gross_Margin_Pct'] = round(gross_profit / summary['Sales'] * 100, 2)
         summary['Net_Margin_Pct'] = round(summary['Net_Income'] / summary['Sales'] * 100, 2)
         summary['Revenue_Per_Unit'] = round(summary['Sales'] / summary['Units_Sold'], 2) if summary['Units_Sold'] > 0 else 0.0
@@ -171,26 +190,18 @@ def calculate_sku_metrics(db: Session, start_date=None, end_date=None) -> pd.Dat
     for e in events:
         if e.is_deferred:
             continue
-        other_tx_fees = 0.0
-        promo_amt = 0.0
-        if e.type == 'Order':
-            calc_net = e.product_sales - abs(e.fba_fees) - abs(e.selling_fees)
-            other_tx_fees = calc_net - e.total_amount
-            # Remove promotional rebates from other_tx_fees to avoid double count
-            promo_amt = abs(e.promotional_rebates)
-            other_tx_fees -= promo_amt
 
         df_rows.append({
             'Sku': e.sku,
-            'Product Sales': e.product_sales if e.type == 'Order' else 0.0,
-            'FBA Fees': abs(e.fba_fees) if e.type == 'Order' else 0.0,
-            'Selling Fees': abs(e.selling_fees) if e.type == 'Order' else 0.0,
-            'Refunds': abs(e.total_amount) if e.type == 'Refund' else 0.0,
-            'Reimbursements': abs(e.total_amount) if e.type == 'Reimbursement' else 0.0,
-            'Other Amazon Fees': other_tx_fees,
-            'Units Ordered': e.quantity if e.type == 'Order' else 0,
-            'Returns Count': 1 if e.type == 'Refund' else 0,
-            'Promotions': promo_amt
+            'Product Sales': e.product_sales if e.event_type == 'Order' else 0.0,
+            'FBA Fees': abs(e.fba_fees) if e.event_type == 'Order' else 0.0,
+            'Selling Fees': abs(e.selling_fees) if e.event_type == 'Order' else 0.0,
+            'Other Fees': abs(e.other_fees) if e.event_type == 'Order' else 0.0,
+            'Refunds': abs(e.total_amount) if e.event_type == 'Refund' else 0.0,
+            'Reimbursements': abs(e.total_amount) if e.event_type == 'Reimbursement' else 0.0,
+            'Units Ordered': e.quantity if e.event_type == 'Order' else 0,
+            'Returns Count': 1 if e.event_type == 'Refund' else 0,
+            'Promotions': abs(e.promotional_rebates) if e.event_type == 'Order' else 0.0,
         })
 
     df = pd.DataFrame(df_rows)
@@ -199,8 +210,9 @@ def calculate_sku_metrics(db: Session, start_date=None, end_date=None) -> pd.Dat
 
     sku_stats = df.groupby('Sku').agg({
         'Product Sales': 'sum', 'FBA Fees': 'sum', 'Selling Fees': 'sum',
+        'Other Fees': 'sum',
         'Refunds': 'sum', 'Reimbursements': 'sum',
-        'Other Amazon Fees': 'sum', 'Units Ordered': 'sum', 'Promotions': 'sum',
+        'Units Ordered': 'sum', 'Promotions': 'sum',
         'Returns Count': 'sum'
     }).reset_index()
 
@@ -216,7 +228,8 @@ def calculate_sku_metrics(db: Session, start_date=None, end_date=None) -> pd.Dat
         sku_stats['Product Sales'] + sku_stats['Reimbursements']
     ) - (
         sku_stats['FBA Fees'] + sku_stats['Selling Fees'] +
-        sku_stats['Refunds'] + sku_stats['Other Amazon Fees'] + 
+        sku_stats['Other Fees'] +
+        sku_stats['Refunds'] +
         sku_stats['Total COGS'] + sku_stats['Promotions']
     )
 
@@ -235,24 +248,26 @@ def calculate_sku_metrics(db: Session, start_date=None, end_date=None) -> pd.Dat
         lambda r: round(r['Net Profit'] / r['Total COGS'] * 100, 2) if r['Total COGS'] > 0 else 0.0, axis=1
     )
 
-    # OpEx allocation
+    # OpEx + Ads allocation
     opex_query = db.query(models.OperatingExpense)
     if start_date and end_date:
         opex_query = opex_query.filter(
             models.OperatingExpense.date_incurred >= start_date,
             models.OperatingExpense.date_incurred <= end_date
         )
-    total_opex = sum(
-        e.amount for e in opex_query.all() if e.category != 'Amazon Ads'
-    )
+    expenses = opex_query.all()
+    total_opex = sum(e.amount for e in expenses if e.category != 'Amazon Ads')
+    total_ads = sum(e.amount for e in expenses if e.category == 'Amazon Ads')
 
     total_sales = sku_stats['Product Sales'].sum()
     if total_sales > 0:
         sku_stats['Allocated_OpEx'] = (sku_stats['Product Sales'] / total_sales) * total_opex
+        sku_stats['Allocated_Ads'] = (sku_stats['Product Sales'] / total_sales) * total_ads
     else:
         sku_stats['Allocated_OpEx'] = 0.0
+        sku_stats['Allocated_Ads'] = 0.0
 
-    sku_stats['Blended_Net_Profit'] = sku_stats['Net Profit'] - sku_stats['Allocated_OpEx']
+    sku_stats['Blended_Net_Profit'] = sku_stats['Net Profit'] - sku_stats['Allocated_OpEx'] - sku_stats['Allocated_Ads']
     sku_stats['Blended_Profit_Per_Sale'] = sku_stats.apply(
         lambda r: round(r['Blended_Net_Profit'] / r['Units Ordered'], 2) if r['Units Ordered'] > 0 else 0.0, axis=1
     )
@@ -399,7 +414,7 @@ def get_ads_summary(db: Session, start_date=None, end_date=None, sku_filter=None
         t['acos'] = round(t['spend'] / t['sales'] * 100, 2) if t['sales'] > 0 else 0.0
         t['cvr'] = round(t['orders'] / t['clicks'] * 100, 2) if t['clicks'] > 0 else 0.0
 
-    top_terms = sorted(term_map.values(), key=lambda x: x['cvr'], reverse=True)[:20]
+    top_terms = sorted(term_map.values(), key=lambda x: x['spend'], reverse=True)[:20]
 
     return {
         'total_impressions': total_impressions,
@@ -421,7 +436,7 @@ def get_ads_summary(db: Session, start_date=None, end_date=None, sku_filter=None
 def get_disbursements(db: Session, start_date=None, end_date=None) -> List[Dict]:
     """Get all Transfer (disbursement) events for the period."""
     query = db.query(models.FinancialEvent).filter(
-        models.FinancialEvent.type == 'Transfer'
+        models.FinancialEvent.event_type == 'Transfer'
     )
     if start_date and end_date:
         query = query.filter(
@@ -454,15 +469,19 @@ def get_reconciliation_check(db: Session, start_date=None, end_date=None, reserv
         )
     events = query.all()
 
-    total_sales_net = sum(e.total_amount for e in events if e.type == 'Order' and not e.is_deferred)
-    total_sales_gross = sum(e.total_amount for e in events if e.type == 'Order')
-    total_refunds = sum(abs(e.total_amount) for e in events if e.type == 'Refund')
-    total_reimbursements = sum(abs(e.total_amount) for e in events if e.type == 'Reimbursement')
-    total_disbursed = sum(abs(e.total_amount) for e in events if e.type == 'Transfer')
+    total_net_order_proceeds = sum(e.total_amount for e in events if e.event_type == 'Order' and not e.is_deferred)
+    total_net_order_proceeds_incl_deferred = sum(e.total_amount for e in events if e.event_type == 'Order')
+    total_refunds = sum(abs(e.total_amount) for e in events if e.event_type == 'Refund')
+    total_reimbursements = sum(abs(e.total_amount) for e in events if e.event_type == 'Reimbursement')
+    total_disbursed = sum(abs(e.total_amount) for e in events if e.event_type == 'Transfer')
     total_deferred = sum(e.total_amount for e in events if e.is_deferred)
-    other_fees = sum(abs(e.total_amount) for e in events if e.type in ('ShippingService', 'Other'))
+    other_fees = sum(abs(e.total_amount) for e in events if e.event_type in ('ShippingService', 'Other'))
+    # Amazon India: product_sales excludes promotional rebates; total_amount = net after all deductions
+    # Gross sales = product_sales + promotional_rebates (total_amount already has promos deducted)
+    total_promotions = sum(abs(e.promotional_rebates) for e in events if e.event_type == 'Order')
+    gross_sales = total_net_order_proceeds_incl_deferred + total_promotions
 
-    expected_payout_gross = total_sales_gross - total_refunds + total_reimbursements - other_fees
+    expected_payout_gross = gross_sales - total_refunds + total_reimbursements - other_fees - total_promotions
     should_have_disbursed = expected_payout_gross - reserve_balance - total_deferred
     discrepancy = should_have_disbursed - total_disbursed
 
@@ -470,24 +489,37 @@ def get_reconciliation_check(db: Session, start_date=None, end_date=None, reserv
     # We want to know if the money paid to bank matches (Sales - Fees - Refunds + Reimbursements)
     
     # Order IDs that were refunded — check if reimbursed
-    refunded_orders = {e.amazon_order_id for e in events if e.type == 'Refund'}
-    reimbursed_orders = {e.amazon_order_id for e in events if e.type == 'Reimbursement'}
+    refunded_orders = {e.amazon_order_id for e in events if e.event_type == 'Refund'}
+    reimbursed_orders = {e.amazon_order_id for e in events if e.event_type == 'Reimbursement'}
     potentially_unreimbursed = refunded_orders - reimbursed_orders
 
+    import json
+    threshold = 100.0
+    try:
+        with open('config.json', 'r') as f:
+            config_data = json.load(f)
+            threshold = config_data.get('reconciliation_threshold', 100.0)
+    except Exception:
+        pass
+
     return {
-        'total_sales_gross': round(total_sales_gross, 2),
-        'total_sales_net': round(total_sales_net, 2),
+        'total_net_order_proceeds_incl_deferred': round(total_net_order_proceeds_incl_deferred, 2),
+        'total_net_order_proceeds': round(total_net_order_proceeds, 2),
         'total_refunds': round(total_refunds, 2),
         'total_reimbursements': round(total_reimbursements, 2),
         'total_disbursed': round(total_disbursed, 2),
         'total_deferred': round(total_deferred, 2),
+        'total_promotions': round(total_promotions, 2),
+        'other_fees': round(other_fees, 2),
+        'gross_sales': round(gross_sales, 2),
         'reserve_balance': round(reserve_balance, 2),
         'expected_payout_gross': round(expected_payout_gross, 2),
         'should_have_disbursed': round(should_have_disbursed, 2),
         'discrepancy': round(discrepancy, 2),
         'potentially_unreimbursed_count': len(potentially_unreimbursed),
         'potentially_unreimbursed_orders': list(potentially_unreimbursed)[:20],
-        'status': 'OK' if abs(discrepancy) < 100 else 'CHECK_REQUIRED',
+        'status': 'OK' if abs(discrepancy) < threshold else 'CHECK_REQUIRED',
+        'reconciliation_threshold': threshold,
     }
 
 
@@ -495,7 +527,7 @@ def get_disbursement_deep_dive(db: Session, start_date=None, end_date=None) -> L
     """Granular data on disbursements (Amazon Payouts)."""
     # Fetch all Transfer events
     transfers = db.query(models.FinancialEvent).filter(
-        models.FinancialEvent.type == 'Transfer'
+        models.FinancialEvent.event_type == 'Transfer'
     )
     if start_date and end_date:
         transfers = transfers.filter(
@@ -511,7 +543,7 @@ def get_disbursement_deep_dive(db: Session, start_date=None, end_date=None) -> L
         # but after the previous transfer date.
         
         prev_t = db.query(models.FinancialEvent).filter(
-            models.FinancialEvent.type == 'Transfer',
+            models.FinancialEvent.event_type == 'Transfer',
             models.FinancialEvent.posted_date < t.posted_date
         ).order_by(models.FinancialEvent.posted_date.desc()).first()
         
@@ -522,14 +554,15 @@ def get_disbursement_deep_dive(db: Session, start_date=None, end_date=None) -> L
         window_events = db.query(models.FinancialEvent).filter(
             models.FinancialEvent.posted_date > start_win,
             models.FinancialEvent.posted_date <= end_win,
-            models.FinancialEvent.type != 'Transfer'
+            models.FinancialEvent.event_type != 'Transfer'
         ).all()
         
-        gross_sales = sum(e.product_sales for e in window_events if e.type == 'Order')
-        fees = sum(abs(e.fba_fees) + abs(e.selling_fees) for e in window_events)
-        refunds = sum(abs(e.total_amount) for e in window_events if e.type == 'Refund')
-        reimb = sum(abs(e.total_amount) for e in window_events if e.type == 'Reimbursement')
-        promos = sum(abs(e.promotional_rebates) for e in window_events)
+        # Amazon India: product_sales excludes promos; gross = product_sales + promotional_rebates
+        gross_sales = sum(e.product_sales + abs(e.promotional_rebates) for e in window_events if e.event_type == 'Order')
+        fees = sum(abs(e.fba_fees) + abs(e.selling_fees) for e in window_events if e.event_type == 'Order')
+        refunds = sum(abs(e.total_amount) for e in window_events if e.event_type == 'Refund')
+        reimb = sum(abs(e.total_amount) for e in window_events if e.event_type == 'Reimbursement')
+        promos = sum(abs(e.promotional_rebates) for e in window_events if e.event_type == 'Order')
         
         deep_dive.append({
             'settlement_id': t.amazon_order_id,
